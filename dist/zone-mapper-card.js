@@ -218,7 +218,8 @@ class ZoneMapperCard extends HTMLElement {
     // Resolve location name used for UI, entity restoration, and backend
     this.location = String(config.location);
 
-    if (config.start_locked !== undefined) {
+    this._lockConfigured = config.start_locked !== undefined;
+    if (this._lockConfigured) {
       this.isLocked = !!config.start_locked;
     }
     if (config.show_undo !== undefined) {
@@ -733,6 +734,7 @@ class ZoneMapperCard extends HTMLElement {
           this._notify('Drawing unlocked. You can edit zones now.');
         }
       });
+      this._updateLockVisual = updateLockVisual;
       updateLockVisual();
     }
 
@@ -1555,7 +1557,25 @@ class ZoneMapperCard extends HTMLElement {
       this.renderZoneButtons();
       this._renderZoneManager();
     }
+    this._applyAutoLock();
     this.drawGrid();
+  }
+
+  _applyAutoLock() {
+    // When the user hasn't pinned start_locked in config, lock by default
+    // whenever zones already exist so accidental clicks don't overwrite them.
+    // Only runs once per page load.
+    if (this._autoLockApplied) return;
+    if (this._lockConfigured) {
+      this._autoLockApplied = true;
+      return;
+    }
+    const hasZones = (this.zones || []).length > 0;
+    this.isLocked = hasZones;
+    this._autoLockApplied = true;
+    if (typeof this._updateLockVisual === 'function') {
+      this._updateLockVisual();
+    }
   }
 
   _renderZoneManager() {
